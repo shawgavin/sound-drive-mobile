@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file:///mnt/ntfs/local-workspaces/personal/SoundDriveMobile/SoundDriveMobile.iml" filepath="/mnt/ntfs/local-workspaces/personal/SoundDriveMobile/SoundDriveMobile.iml" />
+      <module fileurl="file:///mnt/ntfs/local-workspaces/personal/SoundDriveMobile/aars/aars.iml" filepath="/mnt/ntfs/local-workspaces/personal/SoundDriveMobile/aars/aars.iml" />
+      <module fileurl="file:///mnt/ntfs/local-workspaces/personal/SoundDriveMobile/app/app.iml" filepath="/mnt/ntfs/local-workspaces/personal/SoundDriveMobile/app/app.iml" />
+      <module fileurl="file:///mnt/ntfs/local-workspaces/personal/SoundDriveMobile/models/models.iml" filepath="/mnt/ntfs/local-workspaces/personal/SoundDriveMobile/models/models.iml" />
+    </modules>
+  </component>
+</project>
