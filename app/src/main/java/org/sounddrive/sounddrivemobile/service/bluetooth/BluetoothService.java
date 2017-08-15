@@ -9,23 +9,29 @@ import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
-public class BluetoothService {
+public class BluetoothService implements IBluetoothService {
     private static final String TAG = "bluetooth";
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
     private static String address = "20:16:12:07:72:20";
-
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
     private OutputStream outStream = null;
     private Activity activity;
     private Timer timer = new Timer();
+    private IDataReceiveHandler dataReceiveHandler;
+    private InputStream inStream;
+    private BufferedReader inBufferedReader;
 
     public BluetoothService(final Activity activity) {
         this.activity = activity;
@@ -44,17 +50,37 @@ public class BluetoothService {
         }, 0, 200);
     }
 
-    private void error(String title, String message) {
-        toast(title + " - " + message);
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 
-    public void sendData(String message) {
-        byte[] msgBuffer = message.getBytes();
+    private void error(String title, String message) {
 
-        Log.d(TAG, "...Send data: " + message + "...");
+        Log.d(TAG, title + " - " + message);
+    }
+
+    public void sendData(byte message) {
+        Log.d(TAG, "Send byte: " + Integer.valueOf(message).toString());
+
+        byte[] bytes = new byte[1];
+        bytes[0] = message;
+        sendData(bytes, 1);
+
+    }
+
+    public void sendData(byte[] message, int length) {
+        Log.d(TAG, "Send bytes : 0x" + bytesToHex(message));
 
         try {
-            outStream.write(msgBuffer);
+            outStream.write(message, 0, length);
+            dataReceiveHandler.onLineReceived(inBufferedReader.readLine());
+
         } catch (IOException e) {
             String msg = "In onResume() and an exception occurred during write: " + e.getMessage();
             if (address.equals("00:00:00:00:00:00"))
@@ -65,8 +91,20 @@ public class BluetoothService {
         }
     }
 
-    private boolean isConnected() {
+    public void sendData(String message) {
+        Log.d(TAG, "Send String: " + message);
+
+        sendData(message.getBytes(), message.length());
+    }
+
+    public boolean isConnected() {
         return (btSocket != null) && (btSocket.isConnected());
+    }
+
+    @Override
+    public void setDataReceiveHandler(IDataReceiveHandler handler) {
+
+        dataReceiveHandler = handler;
     }
 
     private void checkBTState() {
@@ -76,7 +114,6 @@ public class BluetoothService {
             error("Fatal Error", "Bluetooth not support");
         } else {
             if (btAdapter.isEnabled()) {
-                Log.d(TAG, "...Bluetooth ON...");
                 if (!isConnected())
                     connect();
             } else {
@@ -121,8 +158,16 @@ public class BluetoothService {
 
     }
 
-    public void toast(String text) {
-        Toast.makeText(activity.getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+    public void toast(final String text) {
+        Log.i(TAG,text);
+//        activity.runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//                if (!activity.isFinishing()) {
+//                    Toast.makeText(activity.getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//        });
     }
 
     public void connect() {
@@ -141,6 +186,7 @@ public class BluetoothService {
                 btSocket = createBluetoothSocket(device);
             } catch (IOException e1) {
                 error("Fatal Error", "In onResume() and socket create failed: " + e1.getMessage() + ".");
+                return;
             }
 
             // Discovery is resource intensive.  Make sure it isn't going on
@@ -157,6 +203,7 @@ public class BluetoothService {
                     btSocket.close();
                 } catch (IOException e2) {
                     error("Fatal Error", "In onResume() and unable to close socket during connection failure" + e2.getMessage() + ".");
+                    return;
                 }
             }
 
@@ -165,8 +212,11 @@ public class BluetoothService {
 
             try {
                 outStream = btSocket.getOutputStream();
+                inStream = btSocket.getInputStream();
+                inBufferedReader = new BufferedReader(new InputStreamReader(inStream));
             } catch (IOException e) {
                 error("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
+                return;
             }
             toast("BT Connected!");
         }

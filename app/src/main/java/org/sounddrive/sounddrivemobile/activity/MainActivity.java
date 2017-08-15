@@ -7,17 +7,26 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import org.sounddrive.sounddrivemobile.R;
+import org.sounddrive.sounddrivemobile.model.BrainBoxLine;
 import org.sounddrive.sounddrivemobile.model.DriveCommand;
 import org.sounddrive.sounddrivemobile.service.bluetooth.BluetoothService;
-import org.sounddrive.sounddrivemobile.service.speech.RecogniseHandler;
-import org.sounddrive.sounddrivemobile.service.speech.SpeechService;
+import org.sounddrive.sounddrivemobile.service.bluetooth.IBluetoothService;
+import org.sounddrive.sounddrivemobile.service.bluetooth.IDataReceiveHandler;
+import org.sounddrive.sounddrivemobile.service.speech.GoogleSpeechService;
+import org.sounddrive.sounddrivemobile.service.speech.ISpeechService;
+import org.sounddrive.sounddrivemobile.service.speech.IVoiceRecogniseHandler;
 import org.sounddrive.sounddrivemobile.view.JoystickView;
 
 public class MainActivity extends AppCompatActivity {
-    SpeechService speechService;
-    BluetoothService bluetoothService;
-    private float direction;
-    private float speed;
+    ISpeechService speechService;
+    IBluetoothService bluetoothService;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        bluetoothService.connect();
+        bluetoothService.sendData((byte)(int)DriveCommand.GetData);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,11 +34,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        bluetoothService = new BluetoothService(this);
-        bluetoothService.connect();
 
-        speechService = new SpeechService(this);
-        speechService.setRecogniseHandler(new RecogniseHandler() {
+        speechService = new GoogleSpeechService(this);
+        speechService.setRecogniseHandler(new IVoiceRecogniseHandler() {
             @Override
             public void onRecognise(String result) {
                 Integer command = DriveCommand.interpret(result);
@@ -37,27 +44,40 @@ public class MainActivity extends AppCompatActivity {
                 if (command == null)
                     return;
 
-                if ((command >= DriveCommand.One) && (command <= DriveCommand.Twelve)) {
-                    direction = (float) (command - DriveCommand.One + 1) / (float) (DriveCommand.Twelve - DriveCommand.One + 1);
-                }
-
-                if (command.equals(DriveCommand.Quick)) {
-                    speed = 1;
-                }
-                if (command.equals(DriveCommand.Slow)) {
-                    speed = (float) 0.4;
-                }
-                if (command.equals(DriveCommand.Stop)) {
-                    speed = 0;
-                }
-
-                JoystickView joystickView = (JoystickView) findViewById(R.id.main_joystick);
-                joystickView.setJoystickX((float) (speed * Math.sin(direction * 2 * Math.PI)));
-                joystickView.setJoystickY((float) (-1 * speed * Math.cos(direction * 2 * Math.PI)));
-
-                bluetoothService.sendData(command.toString());
+                bluetoothService.sendData((byte) (int) command);
             }
         });
+        bluetoothService = new BluetoothService(this);
+        bluetoothService.setDataReceiveHandler(new IDataReceiveHandler() {
+            @Override
+            public void onLineReceived(String line) {
+                updateJoystickFromLine(line);
+            }
+        });
+
+    }
+
+    private void updateJoystickFromLine(String line) {
+//        if ((command >= DriveCommand.One) && (command <= DriveCommand.Twelve)) {
+//            direction = (float) (command - DriveCommand.One + 1) / (float) (DriveCommand.Twelve - DriveCommand.One + 1);
+//        }
+//
+//        if (command.equals(DriveCommand.Quick)) {
+//            speed = 1;
+//        }
+//        if (command.equals(DriveCommand.Slow)) {
+//            speed = (float) 0.4;
+//        }
+//        if (command.equals(DriveCommand.Stop)) {
+//            speed = 0;
+//        }
+
+        BrainBoxLine brainBoxLine = BrainBoxLine.fromLine(line);
+        if (brainBoxLine != null) {
+            JoystickView joystickView = (JoystickView) findViewById(R.id.main_joystick);
+            joystickView.setJoystickX((brainBoxLine.getxPos() - brainBoxLine.getxCenter()) / brainBoxLine.getxMax());
+            joystickView.setJoystickY((brainBoxLine.getyPos() - brainBoxLine.getyCenter()) / brainBoxLine.getyMax());
+        }
     }
 
     @Override

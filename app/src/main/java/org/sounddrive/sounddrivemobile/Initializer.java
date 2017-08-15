@@ -4,8 +4,6 @@ import android.app.Application;
 
 import com.squareup.leakcanary.LeakCanary;
 
-import net.gotev.speech.Speech;
-
 public class Initializer extends Application {
     @Override
     public void onCreate() {
@@ -16,6 +14,6 @@ public class Initializer extends Application {
             return;
         }
         LeakCanary.install(this);
-        Speech.init(this);
+        System.setProperty("log.tag.cmusphinx","WARN");
     }
 }

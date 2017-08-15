@@ -1,0 +1,21 @@
+#JSGF V1.0;
+
+grammar commands;
+
+<command> = stop    |
+          slow      |
+          quick     |
+          one       |
+          two       |
+          three     |
+          four      |
+          five      |
+          six       |
+          seven     |
+          eight     |
+          nine      |
+          ten       |
+          eleven    |
+          twelve    ;
+
+public <commands> = <command>+;

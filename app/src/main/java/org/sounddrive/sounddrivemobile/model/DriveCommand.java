@@ -30,6 +30,7 @@ public class DriveCommand {
 
     private static Map<String, Integer> resultMapping = new HashMap<>();
 
+
     static {
         resultMapping.put("stop", Stop);
         resultMapping.put("one", One);
