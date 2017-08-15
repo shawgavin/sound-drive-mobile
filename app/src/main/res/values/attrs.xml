@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="JoystickView">
+        <attr name="joystickX" format="float" />
+        <attr name="joystickY" format="float" />
+    </declare-styleable>
+</resources>
